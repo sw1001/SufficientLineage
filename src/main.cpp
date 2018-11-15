@@ -55,11 +55,11 @@ int main(int argc, char** argv) {
         cout<<p[name]<<endl;
     }
     cout<<endl;
-    DNF dnf (g, p);
+    DNF dnf (s, p);
     dnf.ShowStructure();
     cout<<dnf.ToString()<<endl;
     
-    double epsilon = 0.1; // approximation error
+    double epsilon = 0.0625; // approximation error
     Suff suff;
     cout<<"Original formula: "<<endl;
     suff.print(dnf.getLambda());

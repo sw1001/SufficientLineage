@@ -51,8 +51,8 @@ vector < vector <Literal> > Suff::findMatch(vector < vector <Literal> > lambda) 
     return match;
 }
 
-vector < vector <Literal> > Suff::findSuff(vector < vector <Literal> > lambda, double epsilon) {
-    vector < vector <Literal> > match = Suff::findMatch(lambda);
+vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, double epsilon) {
+    vector< vector<Literal> > match = Suff::findMatch(lambda);
     //cout<<"print match"<<endl;
     //Suff::print(match);
     double pLambda = Suff::probMC(lambda);
@@ -64,7 +64,7 @@ vector < vector <Literal> > Suff::findSuff(vector < vector <Literal> > lambda, d
     //cout<<l<<endl;
     if(pLambda - pMatch <= epsilon) {
         //Sort(match);
-        vector < vector < Literal > > m(0);        
+        vector< vector< Literal > > m(0);        
         double order[l];
         double order_copy[l];
         int order_index[l];
@@ -94,7 +94,7 @@ vector < vector <Literal> > Suff::findSuff(vector < vector <Literal> > lambda, d
         return m;
     } else {
         //find a small cover        
-        vector <Literal> cover(0);
+        vector<Literal> cover(0);
         for (int i = 0; i < l ; i++) {
             for (int j = 0; j < match[i].size(); j++) {
                 cover.push_back(match[i][j]);
@@ -104,29 +104,29 @@ vector < vector <Literal> > Suff::findSuff(vector < vector <Literal> > lambda, d
         //cout<<"print cover size"<<endl;
         //cout<<c<<endl;
         //create a set of buckets
-        vector <  vector < vector <Literal> > > buckets(c);
+        vector<  vector< vector<Literal> > > buckets(c);
         //each mono in lambda
-        for (int i = 0; i < lambda.size(); i++) {
+        for (int i = 0; i < match.size(); i++) {
             //each literal in mono
-            vector <Literal> candidates(0);
-            for (int j = 0; j < lambda[i].size(); j++) {
+            vector<Literal> candidates(0);
+            for (int j = 0; j < match[i].size(); j++) {
                 //find potential covers
-                if(Suff::isIn(lambda[i][j], cover)) {
-                    candidates.push_back(lambda[i][j]);
+                if(Suff::isIn(match[i][j], cover)) {
+                    candidates.push_back(match[i][j]);
                 }
             }
             //arbitrarily pick a candidate literal
             Literal candidate = candidates[rand() % candidates.size()];
             //remove candidate from lambda[i] and send it to corresponding bucket
-            for (int j = 0; j < lambda[i].size(); j++) {
-                if(lambda[i][j].getName() == candidate.getName()){
-                    lambda[i].erase(lambda[i].begin() + j);
+            for (int j = 0; j < match[i].size(); j++) {
+                if(match[i][j].getName() == candidate.getName()){
+                    match[i].erase(match[i].begin() + j);
                     break;
                 }
             }
             for (int j = 0; j < c; j++) {
                 if(cover[j].getName() == candidate.getName()){
-                    buckets[j].push_back(lambda[i]);
+                    buckets[j].push_back(match[i]);
                     break;
                 }
             }
