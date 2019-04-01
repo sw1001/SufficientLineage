@@ -32,12 +32,17 @@ public:
     double probMatch(vector < vector<Literal> >);
     double probMono(vector<Literal>);
     bool isIn(Literal, vector<Literal>);
-    void print(vector < vector<Literal> >);
+    void printProv(vector < vector<Literal> >);
     //void setSuffProv();
     vector < vector<Literal> > getSuffProv();
+    void setSuffProv(vector < vector<Literal> >, double);
+    map<string, double> getInfluence();
+    void setInfluence(vector < vector<Literal> >);
+    vector < vector<Literal> > newLambda(vector < vector<Literal> >, Literal, bool);
+    //void printInflu(vector <Literal>);
 private:
     vector < vector<Literal> > suffProv;
-    
+    map <string, double> influence;
 };
 
 #endif /* SUFF_H */

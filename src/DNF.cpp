@@ -34,7 +34,7 @@ vector< vector< Literal > > DNF::getLambda() {
 
 void DNF::setLambda(map<string, double> p){
     //read in the string then split it into monomials. 
-    //assume the string is the following format: (x1&x2)|(x2&x4&x6)|...
+    //assume the string is the following format: (x1*x2)+(x2*x4*x6)+...
     //loop through the string and convert it to a vector  and store it in dnf
     /*
     //convert string to a 2D vector
