@@ -8,6 +8,6 @@ This algorithm is presented by [Re and Suciu](https://homes.cs.washington.edu/~s
 
 How to use:
 
-Check out the source code and deploy in your local C++ environment.
+Check out the source code and deploy in your local C++ environment. Customize and execute the main method.
 
 
