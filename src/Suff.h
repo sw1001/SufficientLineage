@@ -29,17 +29,20 @@ public:
     vector < vector<Literal> > findSuff(vector < vector<Literal> >, double);
     vector < vector<Literal> > findMatch(vector < vector<Literal> >);
     double probMC(vector < vector<Literal> >);
+    double probMC2(vector < vector<Literal> >, vector < vector<Literal> >);
     double probMatch(vector < vector<Literal> >);
     double probMono(vector<Literal>);
     bool isIn(Literal, vector<Literal>);
     void printProv(vector < vector<Literal> >);
-    //void setSuffProv();
+    void print(vector<Literal>);
     vector < vector<Literal> > getSuffProv();
     void setSuffProv(vector < vector<Literal> >, double);
     map<string, double> getInfluence();
     void setInfluence(vector < vector<Literal> >);
     vector < vector<Literal> > newLambda(vector < vector<Literal> >, Literal, bool);
-    //void printInflu(vector <Literal>);
+    Literal maxInfluence();
+    Literal findMostInfl(vector < vector<Literal> >);
+    vector<Literal> changedLiterals(vector< vector<Literal> >, double);
 private:
     vector < vector<Literal> > suffProv;
     map <string, double> influence;

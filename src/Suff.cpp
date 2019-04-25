@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include "Suff.h"
+#include <time.h>
+#include <valarray>
 
 using namespace std;
 
@@ -56,7 +58,7 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
     //cout<<"print match"<<endl;
     //Suff::print(match);
     double pLambda = Suff::probMC(lambda);
-    cout<<"pLambda = "<<pLambda<<endl;
+    //cout<<"pLambda = "<<pLambda<<endl;
     double pMatch = Suff::probMatch(match);
     //cout<<"pMatch = "<<pMatch<<endl;
     int l = match.size();
@@ -101,41 +103,10 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
             }
         }
         int c = cover.size();
-        cout<<"print cover size"<<endl;
-        cout<<c<<endl;
+        //cout<<"print cover size"<<endl;
+        //cout<<c<<endl;
         //create a set of buckets
         vector<  vector< vector<Literal> > > buckets(c);
-        /*
-        //each mono in lambda
-        for (int i = 0; i < match.size(); i++) {
-            //each literal in mono
-            vector<Literal> candidates(0);
-            for (int j = 0; j < match[i].size(); j++) {
-                //find potential covers
-                if(Suff::isIn(match[i][j], cover)) {
-                    candidates.push_back(match[i][j]);
-                }
-            }
-            //arbitrarily pick a candidate literal
-            Literal candidate = candidates[rand() % candidates.size()];
-            cout<<"candidate: "<<candidate.getName()<<endl;
-            //remove candidate from lambda[i] and send it to corresponding bucket
-            for (int j = 0; j < match[i].size(); j++) {
-                if(match[i][j].getName() == candidate.getName()){
-                    match[i].erase(match[i].begin() + j);
-                    j--;
-                }
-            }
-            for (int j = 0; j < c; j++) {
-                cout<<cover[j].getName()<<" "<<candidate.getName()<<endl;
-                if(cover[j].getName() == candidate.getName()){
-                    cout<<"print candidate's name: "<<endl;
-                    cout<<j<<" "<<candidate.getName()<<endl;
-                    buckets[j].push_back(match[i]);
-                }
-            }
-        }
-        */
         //each mono in lambda
         for (int i = 0; i < lambda.size(); i++) {
             //each literal in mono
@@ -148,37 +119,62 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
             }
             //arbitrarily pick a candidate literal
             Literal candidate = candidates[rand() % candidates.size()];
-            cout<<"candidate: "<<candidate.getName()<<endl;
+            //cout<<"candidate: "<<candidate.getName()<<endl;
             //remove candidate from lambda[i] and send it to corresponding bucket
             for (int j = 0; j < lambda[i].size(); j++) {
                 if(lambda[i][j].getName() == candidate.getName()){
                     lambda[i].erase(lambda[i].begin() + j);
-                    j--;
+                    break;
+                    //j--;
                 }
             }
             for (int j = 0; j < c; j++) {
-                cout<<cover[j].getName()<<" "<<candidate.getName()<<endl;
-                if(cover[j].getName() == candidate.getName()){
-                    cout<<"print candidate's name: "<<endl;
-                    cout<<j<<" "<<candidate.getName()<<endl;
+                //cout<<cover[j].getName()<<" "<<candidate.getName()<<endl;
+                if(cover[j].getName() == candidate.getName() && !lambda[i].empty()){
+                    //cout<<"print candidate's name: "<<endl;
+                    //cout<<j<<" "<<candidate.getName()<<endl;
+                    //Suff::print(lambda[i]);
+                    //cout<<"+++++++++++++"<<"j="<<j<<endl;
                     buckets[j].push_back(lambda[i]);
                 }
             }
-        }
-        
+        }        
         
         //iterate through each bucket
         vector< vector<Literal> >  lambda_s(0);
         for (int i = 0; i < buckets.size(); i++) {
+            /*
+            cout<<"*********************"<<endl;
             cout<<"print buckets["<<i<<"]"<<endl;
             Suff::printProv(buckets[i]);
+            cout<<buckets[i].size()<<endl;
             //cout<<buckets.size()<<endl;
+            cout<<"*********************"<<endl;
+            */
             if (!buckets[i].empty()) {
-                vector< vector<Literal> > v = Suff::findSuff(buckets[i], epsilon / c);
+                vector< vector<Literal> > v = Suff::findSuff(buckets[i], epsilon/c);
+                //add cover[i] back to v and attach to suff lineage lambda
+                //cout<<"bucket cover"<<i<<"="<<cover[i].getName()<<endl;
                 for (int j = 0; j < v.size(); j++) {
+                    if (cover[i].getName() < v[j][0].getName()) {
+                        v[j].insert(v[j].begin(), cover[i]);
+                    } else if (cover[i].getName() > v[j][v[j].size()-1].getName()) {
+                        v[j].push_back(cover[i]);
+                    } else {
+                        for (int k = 0; k < v[j].size()-1; k++) {
+                            if (cover[i].getName() > v[j][k].getName() && cover[i].getName() < v[j][k+1].getName()) {
+                                v[j].insert(v[j].begin()+k+1, cover[i]);
+                            }
+                        }
+                    }
+                    
                     lambda_s.push_back(v[j]);
                 }
-            }                        
+            } /*else {
+                //remove empty buckets
+                buckets.erase(buckets.begin() + i);
+                i--;
+            } */                       
         }
         return lambda_s;
     }
@@ -187,66 +183,135 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
 
 //MC simulation
 double Suff::probMC(vector< vector<Literal> > v) {
-    double rounds = 10000.0;
-    double sum = 0.0;
+    int rounds = 10000;
+    int sum = 0;
     //cout<<"print v"<<endl;
     //Suff::print(v);
+    
+    map<string, double> probability;
+    map<string, int> assignment;    
+    
+    // Extract Variables from Lambda
+    int vs = v.size();
+    for (int i = 0; i < vs; i++) {
+        vector<Literal> monomial = v[i];
+        for (int j = 0; j < monomial.size(); j++) {
+            if (assignment.find(monomial[j].getName()) == assignment.end()) {
+                assignment[monomial[j].getName()] = 0;
+                probability[monomial[j].getName()] = monomial[j].getProb();
+            }
+        }
+    }
     //simulation
     for (int i = 0; i < rounds; i++) {
-        //generate an assignment
-        vector <string> litsDone(0);
-        vector < pair<string, double> > assignment(0);        
-        int vs = v.size();
-        for (int j = 0; j < vs; j++) {
-            int vms = v[j].size();
-            for (int k = 0; k < vms; k++) {
-                //if literal was not processed before
-                if (find(litsDone.begin(), litsDone.end(), v[j][k].getName()) == litsDone.end()) {
-                    //randomly assign a literal based on its probability
-                    double prand = (double) rand() / (RAND_MAX + 1.0);
-                    //cout<<"prand = "<<prand<<endl;
-                    pair <string, double> assignLiteral;
-                    if (v[j][k].getProb() < prand) {
-                        assignLiteral = make_pair(v[j][k].getName(), 0.0);
-                    } else {
-                        assignLiteral = make_pair(v[j][k].getName(), 1.0);
-                    }
-                    litsDone.push_back(v[j][k].getName());
-                    assignment.push_back(assignLiteral);
-                }
+        // assign random value to literals        
+        for (map<string, int>::iterator it = assignment.begin(); it != assignment.end(); it++) {
+            double prand = (double) rand() / (RAND_MAX + 1.0);
+            if (probability[it->first] < prand) {
+                it->second = 0;
+            }
+            else {
+                it->second = 1;
             }
         }
         //compute
-        double value = 0.0;
+        int value = 0;
         //for each monomial
-        for (int j = 0; j < vs; j++) {
-            int vms = v[j].size();
-            //for each literal
-            double valueMono = 1.0;
-            for (int k = 0; k < vms; k++) {
-                for (int a = 0; a < assignment.size(); a++) {
-                    if (v[j][k].getName() == assignment[a].first && assignment[a].second == 0.0) {
-                        valueMono = 0.0;
-                        break;
-                    }
-                }
-                if (valueMono == 0.0) {
+        for (vector< vector<Literal> >::iterator it = v.begin(); it != v.end(); it++) { 
+            vector<Literal> monomial = *it;//for each literal
+            int valueMono = 1;
+            for (vector<Literal>::iterator it2 = monomial.begin(); it2 != monomial.end(); it2++) {
+                if (assignment[it2->getName()] == 0) {
+                    valueMono = 0;
                     break;
                 }
             }
-            if (valueMono == 1.0) {
-                value = 1.0;
-                break;
-            }
-        }
-        
+            if(valueMono == 1) {
+                value = 1;
+                break; 
+            }                        
+        }        
         //update sum
         sum += value;
+    }
+    //cout<<"print probability"<<endl;
+    //cout<<sum/rounds<<endl;
+    return 1.0 * sum / rounds;
+}
+
+//MC2 simulation: for two lambda's
+double Suff::probMC2(vector< vector<Literal> > v1, vector< vector<Literal> > v0) {
+    int rounds = 10000;
+    int sum = 0;
+    map<string, double> probability;
+    map<string, int> assignment;
+    //cout<<"print v1"<<endl;
+    //Suff::print(v1);
+    int v1s = v1.size();
+    //int v0s = v0.size();
+    // Extract Variables from Lambda   
+    for (int i = 0; i < v1s; i++) {
+        vector<Literal> monomial = v1[i];
+        for (int j = 0; j < monomial.size(); j++) {
+            if (assignment.find(monomial[j].getName()) == assignment.end()) {
+                assignment[monomial[j].getName()] = 0;
+                probability[monomial[j].getName()] = monomial[j].getProb();
+            }
+        }
+    }    
+    //simulation
+    for (int i = 0; i < rounds; i++) {        
+        // assign random value to literals        
+        for (map<string, int>::iterator it = assignment.begin(); it != assignment.end(); it++) {
+            double prand = (double) rand() / (RAND_MAX + 1.0);
+            if (probability[it->first] < prand) {
+                it->second = 0;
+            }
+            else {
+                it->second = 1;
+            }
+        }
+        //compute
+        int value1 = 0;
+        //for each monomial
+        for (vector< vector<Literal> >::iterator it = v1.begin(); it != v1.end(); it++) { 
+            vector<Literal> monomial = *it;//for each literal
+            int valueMono = 1;
+            for (vector<Literal>::iterator it2 = monomial.begin(); it2 != monomial.end(); it2++) {
+                if (assignment[it2->getName()] == 0) {
+                    valueMono = 0;
+                    break;
+                }
+            }            
+            if(valueMono == 1) {
+                value1 = 1;
+                break; 
+            }            
+        }
+        
+        int value0 = 0;
+        //for each monomial
+        for (vector< vector<Literal> >::iterator it = v0.begin(); it != v0.end(); it++) { 
+            vector<Literal> monomial = *it;//for each literal
+            int valueMono = 1;
+            for (vector<Literal>::iterator it2 = monomial.begin(); it2 != monomial.end(); it2++) {
+                if (assignment[it2->getName()] == 0) {
+                    valueMono = 0;
+                    break;
+                }
+            }            
+            if(valueMono == 1) {
+                value0 = 1;
+                break; 
+            }            
+        }
+        //update sum
+        sum += value1-value0;
         
     }
     //cout<<"print probability"<<endl;
     //cout<<sum/rounds<<endl;
-    return sum / rounds;
+    return 1.0 * sum / rounds;
 }
 
 double Suff::probMatch(vector< vector<Literal> > v) {
@@ -279,12 +344,19 @@ bool Suff::isIn(Literal x, vector<Literal> cover) {
 
 void Suff::printProv(vector< vector<Literal> > v) {    
     int n = v.size();
+    vector <double> p(0);
     for(int i = 0; i < n; i++) {
         int m = v[i].size();
+        double product = 1.0;
         for(int j = 0; j < m; j++){
             cout<<v[i][j].getName()<<", ";
+            product *= v[i][j].getProb();
         }
+        p.push_back(product);
         cout<<endl;
+    }
+    for(int i = 0; i<p.size(); i++) {
+        cout<<"vector["<<i<<"] prob: "<<p[i]<<endl;
     }
 }
 
@@ -302,65 +374,39 @@ map<string, double> Suff::getInfluence() {
 }
 
 void Suff::setInfluence(vector < vector<Literal> >  sp) {
+    clock_t t = clock();
     map <string, double> infl_x;
-    /*
-    vector <double> products(0);
-    for(int i = 0; i<sp.size(); i++) {
-        double product = 1.0;
-        for(int j = 0; j<sp[i].size(); j++) {
-            product *= sp[i][j].getProb();
-        }
-        products.push_back(product);
-    }
-    double product2 = 1.0;
-    for(int i = 0; i<products.size(); i++) {
-        product2 *= 1.0-products[i];
-    }
-    double expLambda = 1.0-product2;
-    
-    //pick the literal
-    for(int i = 0; i<sp.size(); i++) {
-        for (int j = 0; j<sp[i].size(); j++) {
-            double p = sp[i][j].getProb();
-            string name = sp[i][j].getName();
-            double variance = p*(1.0-p);
-            //product/p(xi)
-            double product3 = 1.0;
-            for(int k = 0; k<products.size(); k++) {
-                if(k==i) {
-                    product3 *= 1.0-products[i]/p;
-                } else {
-                    product3 *= 1.0-products[i];
-                }
-            }
-            double expLambda2 = 1.0-product3;
-            double influence = ((p*expLambda2)-(p*expLambda))/variance; 
-            infl_x[name] = influence;
-            cout<<name<<" "<<influence<<endl;
-        }
-    }
-    */
     //double p = Suff::probMC(sp);
     //cout<<"p="<<p<<endl;
     for(int i = 0; i<sp.size(); i++) {
         for(int j = 0; j<sp[i].size(); j++) {
             if(infl_x.find(sp[i][j].getName()) == infl_x.end()) {
+                clock_t t1 = clock();
+
                 vector < vector<Literal> > sp_x_t;
                 sp_x_t = Suff::newLambda(sp, sp[i][j], true);
-                double p1 = Suff::probMC(sp_x_t);
+                //double p1 = Suff::probMC(sp_x_t);
                 vector < vector<Literal> > sp_x_f;
                 sp_x_f = Suff::newLambda(sp, sp[i][j], false);
-                double p2 = Suff::probMC(sp_x_f);
-                //cout<<"p2="<<p2<<endl;
+                //double p2 = Suff::probMC(sp_x_f);
                 //double infl = ((p2/sp[i][j].getProb())-p)/(1-sp[i][j].getProb());
-                double infl = p1 - p2;
-                infl_x[sp[i][j].getName()] = infl;                
+                //double infl = p1 - p2;
+                double inflPrime = Suff::probMC2(sp_x_t, sp_x_f);
+                cout<</*"Literal influence running time: "<<*/((float)(clock() - t1))/CLOCKS_PER_SEC<</*" seconds"<<*/endl;
+                cout<<sp[i][j].getName()<</*" infl= "<<infl<<*/" inflPrime= "<<inflPrime<<endl;
+                infl_x[sp[i][j].getName()] = inflPrime;               
+
             }
         }
     }
+    t = clock()- t;
+    cout<<"Total influence running time: "<<((float)t)/CLOCKS_PER_SEC<<" seconds"<<endl;
+    /*
     for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
         std::cout << it->first << " " << it->second << "\n";
     }
+    */
+    cout<<"Total number of literals: "<<infl_x.size()<<endl;
     this->influence = infl_x;
 }
 
@@ -372,29 +418,137 @@ Suff::newLambda(vector<vector<Literal> > sp, Literal l, bool f) {
         for(int i = 0; i<sp.size(); i++) {
             for(int j = 0; j<sp[i].size(); j++) {
                 if(l.getName() == sp[i][j].getName()){                    
-                    spCopy[i].erase(spCopy[i].begin() + j);
+                    spCopy[i].erase(spCopy[i].begin()+j);
                     break;
                 }
             }
         }
         return spCopy;
     } else {
-        for(int i = 0; i<sp.size(); i++) {
-            bool has = false;
-            for(int j = 0; j<sp[i].size(); j++) {
-                if(l.getName() == sp[i][j].getName()){
-                    has = true;
+        for(int i = 0; i<spCopy.size(); i++) {
+            //bool has = false;
+            for(int j = 0; j<spCopy[i].size(); j++) {
+                if(l.getName() == spCopy[i][j].getName()){
+                    spCopy.erase(spCopy.begin()+i);
+                    i--;
                     break;
                 }
-            }
-            if(has) {
-                spCopy.erase(spCopy.begin()+i);
             }
         }
         return spCopy;
     }
 }
-/*
-vector <Literal> Suff::printInflu(map <string, double> infl_x) {
-    
-}*/
+
+Literal Suff::maxInfluence() {
+    map <string, double> infl_x = this->influence;
+    double max = 0.0;
+    string name = "";
+    for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
+        if(it->second > max) {
+            max = it->second;
+            name = it->first;
+        }
+    }
+    return Literal(name, max);
+}
+
+Literal Suff::findMostInfl(vector<vector<Literal> > sp) {
+    map <string, double> infl_x;
+    for(int i = 0; i<sp.size(); i++) {
+        for(int j = 0; j<sp[i].size(); j++) {
+            if(infl_x.find(sp[i][j].getName()) == infl_x.end()) {
+                vector < vector<Literal> > sp_x_t;
+                sp_x_t = Suff::newLambda(sp, sp[i][j], true);
+                //double p1 = Suff::probMC(sp_x_t);
+                vector < vector<Literal> > sp_x_f;
+                sp_x_f = Suff::newLambda(sp, sp[i][j], false);
+                //double p2 = Suff::probMC(sp_x_f);
+                //double infl = ((p2/sp[i][j].getProb())-p)/(1-sp[i][j].getProb());
+                //double infl = p1 - p2;
+                double inflPrime = Suff::probMC2(sp_x_t, sp_x_f);
+                cout<<sp[i][j].getName()<<" inflPrime= "<<inflPrime<<endl;
+                infl_x[sp[i][j].getName()] = inflPrime;                
+            }
+        }
+    }
+    double max = 0.0;
+    string name = "";
+    for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
+        if(it->second > max) {
+            max = it->second;
+            name = it->first;
+        }
+    }
+    return Literal(name, max);
+}
+
+vector<Literal> 
+Suff::changedLiterals(vector< vector<Literal> > lambda, double t) {
+    vector<Literal> v(0);
+    double p = Suff::probMC(lambda);
+    cout<<"plambda="<<p<<endl;
+    if(p == t) {
+        return v;
+    }
+    //find most influential literal    
+    Literal xm = Suff::findMostInfl(lambda);
+    if(p < t) {
+        // increase most influential literal
+        for(int i = 0; i<lambda.size(); i++) {
+            for(int j = 0; j<lambda[i].size(); j++) {
+                if(lambda[i][j].getName() == xm.getName()) {
+                    //lambda[i][j].setProb(1.0);
+                    lambda[i].erase(lambda[i].begin()+j);
+                    break;
+                }
+            }
+        }
+        double pp = Suff::probMC(lambda);
+        cout<<"increased pp="<<pp<<endl;
+        v.push_back(xm);
+        if(pp-t >= 0.0) {
+            //find delta prob for the most influential literal
+            
+            return v;
+        } else {
+            vector<Literal> v2 = Suff::changedLiterals(lambda, t);
+            //std::copy(v2.begin(), v2.end(), std::back_inserter(v));
+            v.insert(v.end(), v2.begin(), v2.end());
+            return v;
+        }
+    } else {
+        // decrease most influential literal
+        cout<<"************"<<endl;
+        Suff::printProv(lambda);
+        for(int i = 0; i<lambda.size(); i++) {
+            for(int j = 0; j<lambda[i].size(); j++) {
+                if(lambda[i][j].getName() == xm.getName()) {
+                    lambda.erase(lambda.begin()+i);
+                    i--;
+                    break;
+                }
+            }
+        }
+        cout<<"+++++++++++++"<<endl;
+        Suff::printProv(lambda);
+        double pp = Suff::probMC(lambda);
+        cout<<"decreased pp="<<pp<<endl;
+        v.push_back(xm);
+        if(t-pp >= 0.0) {
+            //find delta prob for the most influential literal
+            
+            return v;
+        } else {
+            vector<Literal> v2 = Suff::changedLiterals(lambda, t);
+            v.insert(v.end(), v2.begin(), v2.end());
+            return v;
+        }
+    }
+}
+
+void Suff::print(vector<Literal> v) {
+    cout<<"------------------"<<endl;
+    for(int i = 0; i<v.size(); i++) {
+        cout<<"name="<<v[i].getName()<<" prob="<<v[i].getProb()<<endl;
+    }
+}
