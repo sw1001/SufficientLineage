@@ -152,7 +152,7 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
             cout<<"*********************"<<endl;
             */
             if (!buckets[i].empty()) {
-                vector< vector<Literal> > v = Suff::findSuff(buckets[i], epsilon/c);
+                vector< vector<Literal> > v = Suff::findSuff(buckets[i], epsilon/c/cover[i].getProb());
                 //add cover[i] back to v and attach to suff lineage lambda
                 //cout<<"bucket cover"<<i<<"="<<cover[i].getName()<<endl;
                 for (int j = 0; j < v.size(); j++) {
