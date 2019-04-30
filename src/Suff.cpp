@@ -54,6 +54,75 @@ vector < vector <Literal> > Suff::findMatch(vector < vector <Literal> > lambda) 
 }
 
 vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, double epsilon) {
+    sort(lambda.begin(), lambda.end(), [](const vector<Literal> lhs, const vector<Literal> rhs) {
+        double p_lhs = 1.0;
+        for (int i = 0; i < lhs.size(); i++) {
+            p_lhs *= lhs[i].getProb();
+        }
+
+        double p_rhs = 1.0;
+        for (int i = 0; i < rhs.size(); i++) {
+            p_rhs *= rhs[i].getProb();
+        }
+
+        return p_lhs < p_rhs;
+    });
+
+    double pLambda = probMC(lambda);
+    double t = pLambda - epsilon;
+    /*
+    while (1) {
+        for (int i = 0; i < 10; i ++)
+            lambda.erase(lambda.begin());
+        double current = probMC(lambda);
+        if (pLambda - current > epsilon) break;
+    }
+
+    return lambda;
+    */
+    /*
+    function binary_search(A, n, T):
+    L := 0
+    R := n − 1
+    while L <= R:
+        m := floor((L + R) / 2)
+        if A[m] < T:
+            L := m + 1
+        else if A[m] > T:
+            R := m - 1
+        else:
+            return m
+    return unsuccessful
+     */
+    int l = 0;
+    int r = lambda.size()-1;
+    while(l <= r){
+        int m = floor((l+r)/2);
+        vector< vector<Literal> > v_temp(0);
+        vector< vector<Literal> > v_temp1(0);
+        v_temp.assign(lambda.begin()+m,lambda.end());
+        v_temp1.assign(lambda.begin()+m+1,lambda.end());
+        //copy(lambda.begin()+m,lambda.end(),v_temp.begin());
+        //copy(lambda.begin()+m+1,lambda.end(),v_temp1.begin());
+        double p = probMC(v_temp);
+        double p1 = probMC(v_temp1);
+        if(p < t && p1 < t) {
+            //cut less
+            r = m-1;
+        } else if(p > t && p1 > t) {
+            //cut more
+            l = m+1;
+        } else if(p > t && p1 < t) {
+            //right there
+            return v_temp;
+        } else {
+            cout<<"Not found! "<<endl;
+        }
+    }
+
+}
+/*
+vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, double epsilon) {
     vector< vector<Literal> > match = Suff::findMatch(lambda);
     //cout<<"print match"<<endl;
     //Suff::print(match);
@@ -75,8 +144,8 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
             order_copy[i] = Suff::probMono(match[i]);
             order_index[i] = i;
         }
-        /*sort(order_index.begin(), order_index.end(), [&](int x, int y) { \
-            return order[x] < order[y]; });*/
+        //sort(order_index.begin(), order_index.end(), [&](int x, int y) { \
+            return order[x] < order[y]; });
         
         sort(order, order + l, greater<double>());
         for (int i = 0; i < l ; i++) {
@@ -143,14 +212,6 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
         //iterate through each bucket
         vector< vector<Literal> >  lambda_s(0);
         for (int i = 0; i < buckets.size(); i++) {
-            /*
-            cout<<"*********************"<<endl;
-            cout<<"print buckets["<<i<<"]"<<endl;
-            Suff::printProv(buckets[i]);
-            cout<<buckets[i].size()<<endl;
-            //cout<<buckets.size()<<endl;
-            cout<<"*********************"<<endl;
-            */
             if (!buckets[i].empty()) {
                 vector< vector<Literal> > v = Suff::findSuff(buckets[i], epsilon/c/cover[i].getProb());
                 //add cover[i] back to v and attach to suff lineage lambda
@@ -170,17 +231,13 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
                     
                     lambda_s.push_back(v[j]);
                 }
-            } /*else {
-                //remove empty buckets
-                buckets.erase(buckets.begin() + i);
-                i--;
-            } */                       
+            }
         }
         return lambda_s;
     }
     
 }
-
+*/
 //MC simulation
 double Suff::probMC(vector< vector<Literal> > v) {
     int rounds = 10000;
@@ -203,10 +260,13 @@ double Suff::probMC(vector< vector<Literal> > v) {
         }
     }
     //simulation
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> distribution(0.0,1.0);
     for (int i = 0; i < rounds; i++) {
         // assign random value to literals        
         for (map<string, int>::iterator it = assignment.begin(); it != assignment.end(); it++) {
-            double prand = (double) rand() / (RAND_MAX + 1.0);
+            //double prand = (double) rand() / (RAND_MAX + 1.0);
+            double prand = distribution(generator);
             if (probability[it->first] < prand) {
                 it->second = 0;
             }
@@ -260,10 +320,13 @@ double Suff::probMC2(vector< vector<Literal> > v1, vector< vector<Literal> > v0)
         }
     }    
     //simulation
+    std::default_random_engine generator;
+    std::uniform_real_distribution<double> distribution(0.0,1.0);
     for (int i = 0; i < rounds; i++) {        
         // assign random value to literals        
         for (map<string, int>::iterator it = assignment.begin(); it != assignment.end(); it++) {
-            double prand = (double) rand() / (RAND_MAX + 1.0);
+            //double prand = (double) rand() / (RAND_MAX + 1.0);
+            double prand = distribution(generator);
             if (probability[it->first] < prand) {
                 it->second = 0;
             }
@@ -444,7 +507,7 @@ Literal Suff::maxInfluence() {
     double max = 0.0;
     string name = "";
     for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
-        if(it->second > max) {
+        if(it->second > max && it->first.compare("r1") != 0 && it->first.compare("r2") != 0 && it->first.compare("r3") != 0 && it->first.compare("ra") != 0) {
             max = it->second;
             name = it->first;
         }
@@ -479,6 +542,23 @@ Literal Suff::findMostInfl(vector<vector<Literal> > sp) {
             name = it->first;
         }
     }
+    /*
+    int s = infl_x.size();
+    std::random_device rd;  //Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
+    std::uniform_int_distribution<> dis(1, s);
+    int dice_roll = dis(gen);
+    cout<<"DICE ROLL"<<dice_roll<<" "<<s<<endl;
+    int i = 1;
+    for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
+        if(i == dice_roll) {
+            max = it->second;
+            name = it->first;
+        }
+        i++;
+    }
+    return Literal(name, max);
+    */
     return Literal(name, max);
 }
 
@@ -492,6 +572,8 @@ Suff::changedLiterals(vector< vector<Literal> > lambda, double t) {
     }
     //find most influential literal    
     Literal xm = Suff::findMostInfl(lambda);
+    //Randomly pick up a literal
+
     if(p < t) {
         // increase most influential literal
         for(int i = 0; i<lambda.size(); i++) {
@@ -508,9 +590,10 @@ Suff::changedLiterals(vector< vector<Literal> > lambda, double t) {
         v.push_back(xm);
         if(pp-t >= 0.0) {
             //find delta prob for the most influential literal
-            
+            cout<<xm.getName()<<" cost="<<(t-p)/xm.getProb()<<endl;
             return v;
         } else {
+            cout<<xm.getName()<<" cost="<<(pp-p)/xm.getProb()<<endl;
             vector<Literal> v2 = Suff::changedLiterals(lambda, t);
             //std::copy(v2.begin(), v2.end(), std::back_inserter(v));
             v.insert(v.end(), v2.begin(), v2.end());
