@@ -141,20 +141,20 @@ int main(int argc, char** argv) {
     double pLambda = suff.probMC(dnf.getLambda());
     cout<<"pLambda = "<<pLambda<<endl;
 
-
+/*
     clock_t tsuff = clock();
-    double epsilon = 1.0*0.01*pLambda; // approximation error
+    double epsilon = 0.1*0.01*pLambda; // approximation error
     suff.setSuffProv(dnf.getLambda(), epsilon);
     tsuff = clock() - tsuff;
     cout<<"Suff lineage time: "<<((float) tsuff)/CLOCKS_PER_SEC<<" seconds"<<endl;
     cout<<"Sufficient lineage: "<<endl;
     suff.printProv(suff.getSuffProv());
-
+*/
 
     cout<<"Influence:" <<endl;
     clock_t t2 = clock();
-    //suff.setInfluence(dnf.getLambda());
-    suff.setInfluence(suff.getSuffProv());
+    suff.setInfluence(dnf.getLambda());
+    //suff.setInfluence(suff.getSuffProv());
     t2 = clock() - t2;
     cout<<"Influence running time: "<<((float)t2)/CLOCKS_PER_SEC<<" seconds"<<endl;
     Literal x = suff.maxInfluence();
