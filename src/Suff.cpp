@@ -108,10 +108,10 @@ vector< vector<Literal> > Suff::findSuff(vector< vector<Literal> > lambda, doubl
         double p1 = probMC(v_temp1);
         if(p < t && p1 < t) {
             //cut less
-            r = m-1;
+            r = m;
         } else if(p > t && p1 > t) {
             //cut more
-            l = m+1;
+            l = m;
         } else if(p > t && p1 < t) {
             //right there
             return v_temp;
@@ -536,30 +536,44 @@ Literal Suff::findMostInfl(vector<vector<Literal> > sp) {
     }
     double max = 0.0;
     string name = "";
+    /*
     for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
-        if(it->second > max) {
+        if(it->second > max && it->first.compare("r1") != 0 && it->first.compare("r2") != 0 && it->first.compare("r3") != 0) {
             max = it->second;
             name = it->first;
         }
     }
-    /*
-    int s = infl_x.size();
+    */
+
+    int s = 0;
+    for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
+        if(it->first.compare("r1") != 0 && it->first.compare("r2") != 0 && it->first.compare("r3") != 0) {
+            s++;
+        }
+    }
+    cout<<"s="<<s;
     std::random_device rd;  //Will be used to obtain a seed for the random number engine
     std::mt19937 gen(rd()); //Standard mersenne_twister_engine seeded with rd()
     std::uniform_int_distribution<> dis(1, s);
     int dice_roll = dis(gen);
-    cout<<"DICE ROLL"<<dice_roll<<" "<<s<<endl;
+    cout<<" DICE ROLL "<<dice_roll<<" "<<endl;
     int i = 1;
     for(map<string, double>::const_iterator it = infl_x.begin(); it != infl_x.end(); ++it) {
-        if(i == dice_roll) {
+        //if(i == dice_roll) {
+        //   max = it->second;
+        //    name = it->first;
+        //}
+        if(it->first.compare("r1") == 0 || it->first.compare("r2") == 0 || it->first.compare("r3") == 0 ) {
+            continue;
+        } else if(i == dice_roll) {
             max = it->second;
             name = it->first;
         }
         i++;
     }
     return Literal(name, max);
-    */
-    return Literal(name, max);
+
+    //return Literal(name, max);
 }
 
 vector<Literal> 
