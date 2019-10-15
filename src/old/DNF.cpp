@@ -28,47 +28,51 @@ DNF::DNF(const DNF& orig) {
 DNF::~DNF() {
 }
 
-DNF::DNF(string s, map<string, double> p) {
-    this->provStr = s;
-    setProbs(p);
-    root = new TreeNode(s);
-    DNF::ConvertToDNF();
-    DNF::setLambda(p);
-}
-
-vector< map<string, double > > DNF::getLambda() {
+vector< vector< Literal > > DNF::getLambda() {
     return lambda;
 }
 
 void DNF::setLambda(map<string, double> p){
-    //read in the string then split it into monomials.
-    //loop through the string and convert it to a vector and store it in dnf
+    //read in the string then split it into monomials. 
+    //assume the string is the following format: (x1*x2)+(x2*x4*x6)+...
+    //loop through the string and convert it to a vector  and store it in dnf
+    /*
+    //convert string to a 2D vector
+    vector <Literal> m(0);
+    
+    Literal x1("x1", 0.75);
+    Literal x2("x2", 0.25);
+    Literal x3("x3", 0.125);
+    Literal x4("x4", 0.2);
+    
+    m.push_back(x1);
+    m.push_back(x2);
+    lambda.push_back(m);
+    m.pop_back();
+    m.push_back(x3);
+    lambda.push_back(m);
+    m.pop_back();
+    m.pop_back();
+    m.push_back(x2);
+    m.push_back(x3);
+    m.push_back(x4);
+    lambda.push_back(m);
+    */
     int s = dnf_vector.size();
     for (int i = 0; i < s; i++) {
-        map<string, double> mono;
+        vector <Literal> m(0);
         int si = dnf_vector[i].size();
-        bool hasIDB = false;
         for (int j = 0; j < si; j++) {
-            if (p.find(dnf_vector[i][j]) != p.end()) {
-                mono[dnf_vector[i][j]] = p[dnf_vector[i][j]];
-            } else {
-                hasIDB = true;
-                break;
-            }
+            //cout<<dnf_vector[i][j]<<endl;
+            //cout<<p["x1"]<<endl;
+            Literal xi(dnf_vector[i][j], p[dnf_vector[i][j]]);
+            //cout<<p[dnf_vector[i][j]]<<endl;
+            m.push_back(xi);
         }
-        if(!hasIDB) {
-            mono.erase("ra");
-            mono.erase("rb");
-            mono.erase("r0");
-            mono.erase("r1");
-            mono.erase("r2");
-            mono.erase("r3");
-            mono.erase("r4");
-            mono.erase("r5");
-            mono.erase("r6");
-            lambda.push_back(mono);
-        }
+        lambda.push_back(m);
     }
+    
+
 }
 
 map<string, double> DNF::getProbs() {
@@ -76,9 +80,17 @@ map<string, double> DNF::getProbs() {
 }
 
 void DNF::setProbs(map<string, double> p) {
-    this->probs = p;
+    probs = p;
 }
 
+DNF::DNF(string s, map<string, double> p) {
+    this->str = s;
+    probs = p;
+    //cout<<p["x1"]<<endl;
+    root = new TreeNode(s);
+    DNF::ConvertToDNF();
+    DNF::setLambda(p);    
+}
 
 void
 DNF::ConvertToDNF() {
